@@ -119,7 +119,7 @@ async function mandar(texto) {
   agregarUsuario(texto)
   pensando(true)
   try {
-    const res = await fetch("/api/chat", { method: "POST", headers: cabeceras(), body: JSON.stringify({ sessionId, message: texto }) })
+    const res = await fetch("/api/chat", { method: "POST", headers: cabeceras(), body: JSON.stringify({ ...(sessionId ? { sessionId } : {}), message: texto }) })
     const r = await res.json().catch(() => ({ error: "Respuesta inválida del servidor" }))
     if (!res.ok) {
       agregarAgente({ reply: `⚠ ${r.error || `Error ${res.status}`}`, error: true })

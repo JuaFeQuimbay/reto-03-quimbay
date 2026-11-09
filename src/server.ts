@@ -23,7 +23,7 @@ const deps: Dependencias = {
 }
 
 const PeticionChat = z.object({
-  sessionId: z.string().max(64).optional(),
+  sessionId: z.string().max(64, "sessionId demasiado largo").nullish(), // null/ausente = sesión nueva
   message: z.string().trim().min(1, "el mensaje está vacío").max(2000, "el mensaje supera 2000 caracteres"),
 })
 
@@ -67,7 +67,7 @@ async function chat(req: Request, ip: string): Promise<Response> {
   const cuerpo = PeticionChat.safeParse(await req.json().catch(() => null))
   if (!cuerpo.success) return error(cuerpo.error.issues.map((i) => i.message).join("; "), 400)
 
-  const sesion = obtenerOCrearSesion(cuerpo.data.sessionId)
+  const sesion = obtenerOCrearSesion(cuerpo.data.sessionId ?? undefined)
   if (sesion.ocupada) return error("La sesión está procesando otro mensaje.", 409)
   sesion.ocupada = true
   try {
