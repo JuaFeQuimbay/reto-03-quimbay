@@ -1,0 +1,20 @@
+# Blueprint de Render: un servicio web gratuito construido desde el Dockerfile.
+services:
+  - type: web
+    name: reto-03-quimbay
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # La clave se ingresa en el panel de Render (nunca en el repositorio).
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: claude-sonnet-5-5
+      - key: LLM_EFFORT
+        value: medium
+      - key: MAX_TOKENS_GLOBAL
+        value: "3000000"
+      - key: MAX_MENSAJES_POR_IP
+        value: "40"

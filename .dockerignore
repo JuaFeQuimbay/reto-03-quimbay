@@ -1,0 +1,10 @@
+node_modules
+out
+.env
+.env.*
+!.env.example
+.git
+explicacion
+reto-03
+*.pdf
+PLAN-RETO-03.md
