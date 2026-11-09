@@ -8,7 +8,8 @@ export type ToolCallVista = {
   ok: boolean
   resumen: string
   ms: number
-  bloqueadaPorCompuerta?: boolean
+  /** La compuerta CA3 anuló un confirmado=true no respaldado por el usuario. */
+  compuerta?: boolean
 }
 
 export type EntradaHistorial = {

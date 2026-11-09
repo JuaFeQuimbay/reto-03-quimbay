@@ -66,7 +66,7 @@ function agregarUsuario(texto) {
 
 function tarjetaHerramienta(t) {
   const d = document.createElement("details")
-  d.className = `herramienta${t.bloqueadaPorCompuerta ? " compuerta" : ""}`
+  d.className = `herramienta${t.compuerta ? " compuerta" : ""}`
   const estado = t.ok ? '<span class="ok">✔</span>' : '<span class="fallo">✘</span>'
   d.innerHTML = `<summary>${estado}<span class="nombre">${escapar(t.nombre)}</span><span class="resumen">${escapar(t.resumen)}</span><span class="resumen">${t.ms} ms</span></summary><pre>${escapar(JSON.stringify(t.argumentos ?? {}, null, 2))}</pre>`
   return d

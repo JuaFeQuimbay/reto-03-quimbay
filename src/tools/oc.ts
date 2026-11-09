@@ -124,7 +124,7 @@ export const crear = herramienta({
       const sap = crearAdaptadorSap(ctx.directory)
 
       if (!v.apta) {
-        await registrarControl(ctx.directory, filaControl(v, "bloqueada"))
+        await registrarControl(ctx.directory, filaControl(v, "bloqueada"), { omitirSiRepetido: true })
         return fallo(`No se crea la OC. Bloqueos: ${v.bloqueos.map((b) => `${b.regla}: ${b.mensaje}`).join(" | ")}`)
       }
 
@@ -135,7 +135,7 @@ export const crear = herramienta({
       }
 
       if (v.confirmaciones.length && !args.confirmado) {
-        await registrarControl(ctx.directory, filaControl(v, "pendiente_confirmacion"))
+        await registrarControl(ctx.directory, filaControl(v, "pendiente_confirmacion"), { omitirSiRepetido: true })
         const lista = v.confirmaciones.map((c) => `${c.regla}: ${c.mensaje}`).join(" | ")
         return fallo(`Requiere confirmación humana explícita antes de crear. ${lista} Pregunta al usuario y vuelve a llamar con confirmado=true solo si confirma.`)
       }

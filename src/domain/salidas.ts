@@ -2,7 +2,7 @@
 import { appendFile, mkdir, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { enSerie } from "./cola.ts"
-import { existe } from "./fuentes.ts"
+import { leerTextoOpcional } from "./fuentes.ts"
 
 export const DIR_SALIDA = "out"
 
@@ -36,16 +36,30 @@ function celda(valor: string): string {
   return /[",\n]/.test(valor) ? `"${valor.replace(/"/g, '""')}"` : valor
 }
 
-async function anexar(directory: string, archivo: string, linea: string, encabezado?: string): Promise<void> {
+type OpcionesAnexar = { encabezado?: string; omitirSi?: (contenidoActual: string) => boolean }
+
+async function anexar(directory: string, archivo: string, linea: string, opciones: OpcionesAnexar = {}): Promise<void> {
   await enSerie(async () => {
     const ruta = join(directory, DIR_SALIDA, archivo)
     await mkdir(dirname(ruta), { recursive: true })
-    const nuevo = encabezado !== undefined && !(await existe(ruta))
-    await appendFile(ruta, `${nuevo ? `${encabezado}\n` : ""}${linea}\n`, "utf8")
+    const actual = (await leerTextoOpcional(ruta)) ?? ""
+    if (opciones.omitirSi?.(actual)) return
+    const nuevo = opciones.encabezado !== undefined && actual === ""
+    await appendFile(ruta, `${nuevo ? `${opciones.encabezado}\n` : ""}${linea}\n`, "utf8")
   })
 }
 
-export async function registrarControl(directory: string, fila: FilaControl): Promise<void> {
+/** Último resultado registrado para una solicitud (segunda columna de su última fila). */
+function ultimoResultado(csv: string, solicitudId: string): string | null {
+  const filas = csv.split("\n").filter((l) => l.startsWith(`${solicitudId},`))
+  return filas.at(-1)?.split(",")[1] ?? null
+}
+
+/**
+ * Agrega una fila por intento. Con `omitirSiRepetido`, no repite el mismo desenlace consecutivo
+ * del mismo caso (p. ej. validación "pendiente" seguida de un oc_crear rechazado por lo mismo).
+ */
+export async function registrarControl(directory: string, fila: FilaControl, opciones: { omitirSiRepetido?: boolean } = {}): Promise<void> {
   const valores = [
     fila.solicitud_id,
     fila.resultado,
@@ -55,7 +69,10 @@ export async function registrarControl(directory: string, fila: FilaControl): Pr
     fila.confirmaciones.join("|"),
     new Date().toISOString(),
   ]
-  await anexar(directory, "control.csv", valores.map(celda).join(","), COLUMNAS.join(","))
+  await anexar(directory, "control.csv", valores.map(celda).join(","), {
+    encabezado: COLUMNAS.join(","),
+    ...(opciones.omitirSiRepetido ? { omitirSi: (csv: string) => ultimoResultado(csv, fila.solicitud_id) === fila.resultado } : {}),
+  })
 }
 
 // --- out/log.jsonl (CA4): cada llamada a herramienta --------------------------------------

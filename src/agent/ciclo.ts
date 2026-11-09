@@ -14,7 +14,6 @@ import {
   type ResultadoHerramienta,
   type Uso,
 } from "../llm/adapter.ts"
-import { fallo } from "../tools/contrato.ts"
 import { ejecutarHerramienta } from "../tools/index.ts"
 import { esConfirmacion, esNegacion } from "./confirmacion.ts"
 import { comoValidacion, leerSalida, resumirSalida } from "./salida-herramienta.ts"
@@ -69,14 +68,17 @@ function argumento(args: unknown, campo: string): unknown {
   return args !== null && typeof args === "object" && campo in args ? (args as Record<string, unknown>)[campo] : undefined
 }
 
-/** CA3 en código: confirmado=true solo si el usuario confirmó ESTE caso en su último mensaje. */
+/** CA3 en código: confirmado=true solo vale si el usuario confirmó ESTE caso en su último mensaje. */
 function violaCompuerta(ll: LlamadaHerramienta, c: Contexto): boolean {
   if (ll.nombre !== "oc_crear" || argumento(ll.argumentos, "confirmado") !== true) return false
   return !(c.confirmoEsteTurno && argumento(ll.argumentos, "caso") === c.casoConfirmable)
 }
 
-const MENSAJE_COMPUERTA =
-  "Compuerta de confirmación humana: confirmado=true solo se acepta cuando el usuario confirma explícitamente en su último mensaje, después de que le presentaste las confirmaciones pendientes de ese caso. Termina el turno con la pregunta de confirmación."
+/** Neutraliza el flag en vez de rechazar la llamada: oc_crear decide (crea si no hay confirmaciones; si las hay, pide confirmar). */
+function sinConfirmado(args: unknown): Record<string, unknown> {
+  const base = args !== null && typeof args === "object" ? (args as Record<string, unknown>) : {}
+  return { ...base, confirmado: false }
+}
 
 /** Mantiene sesion.pendiente según lo que devolvieron las herramientas. */
 function actualizarPendiente(sesion: Sesion, ll: LlamadaHerramienta, salida: string): void {
@@ -93,16 +95,17 @@ function actualizarPendiente(sesion: Sesion, ll: LlamadaHerramienta, salida: str
 
 async function ejecutarLlamada(ll: LlamadaHerramienta, c: Contexto): Promise<{ resultado: ResultadoHerramienta; vista: ToolCallVista }> {
   const ctx = { directory: c.deps.directory, sessionId: c.sesion.id }
-  if (violaCompuerta(ll, c)) {
-    await registrarLog(ctx.directory, { ts: new Date().toISOString(), sessionId: ctx.sessionId, herramienta: ll.nombre, args: ll.argumentos, ok: false, error: "compuerta CA3" })
-    const vista = { nombre: ll.nombre, argumentos: ll.argumentos, ok: false, resumen: "Bloqueada por la compuerta de confirmación humana", ms: 0, bloqueadaPorCompuerta: true }
-    return { resultado: { id: ll.id, contenido: fallo(MENSAJE_COMPUERTA), esError: true }, vista }
+  const compuerta = violaCompuerta(ll, c)
+  const args = compuerta ? sinConfirmado(ll.argumentos) : ll.argumentos
+  if (compuerta) {
+    await registrarLog(ctx.directory, { ts: new Date().toISOString(), sessionId: ctx.sessionId, evento: "compuerta_CA3", herramienta: ll.nombre, args: ll.argumentos, detalle: "confirmado=true anulado: el usuario no confirmó este caso en su último mensaje" })
   }
-  const ej = await ejecutarHerramienta(ll.nombre, ll.argumentos, ctx)
+  const ej = await ejecutarHerramienta(ll.nombre, args, ctx)
   actualizarPendiente(c.sesion, ll, ej.salida)
+  const resumen = `${compuerta ? "⚠ confirmado anulado por la compuerta · " : ""}${resumirSalida(ll.nombre, ej.salida)}`
   return {
     resultado: { id: ll.id, contenido: ej.salida, esError: !ej.ok },
-    vista: { nombre: ll.nombre, argumentos: ll.argumentos, ok: ej.ok, resumen: resumirSalida(ll.nombre, ej.salida), ms: ej.ms },
+    vista: { nombre: ll.nombre, argumentos: args, ok: ej.ok, resumen, ms: ej.ms, ...(compuerta ? { compuerta: true } : {}) },
   }
 }
 
