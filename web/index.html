@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agente · Órdenes de Compra SAP</title>
+  <link rel="stylesheet" href="/estilos.css" />
+</head>
+<body>
+  <header class="barra">
+    <div class="marca">
+      <span class="logo">OC</span>
+      <div>
+        <h1>Agente de Órdenes de Compra</h1>
+        <p class="sub">Lee, valida (RC1–RC10) y crea OC en un SAP simulado</p>
+      </div>
+    </div>
+    <div class="acciones">
+      <span id="estado" class="pastilla">conectando…</span>
+      <input id="clave" class="clave" type="password" placeholder="Clave de acceso" hidden />
+      <button id="nueva" class="boton secundario" type="button">Nueva sesión</button>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <section id="chat" class="chat" aria-live="polite">
+      <div id="bienvenida" class="bienvenida">
+        <h2>¿Qué solicitud procesamos?</h2>
+        <p>Prueba con un caso o con el prompt de ejemplo del PRD:</p>
+        <div class="chips">
+          <button class="chip" data-msg='Procesa la solicitud "sol-004". Muéstrame la OC como quedaría en SAP, qué validaciones pasó y cuáles no, y no la crees hasta que yo lo confirme.'>Prompt de ejemplo (sol-004)</button>
+          <button class="chip" data-msg="Procesa sol-001">sol-001 · flujo normal</button>
+          <button class="chip" data-msg="Procesa sol-002">sol-002 · proveedor</button>
+          <button class="chip" data-msg="Procesa sol-003">sol-003 · aprobador</button>
+          <button class="chip" data-msg="Procesa sol-005">sol-005 · retroactiva</button>
+          <button class="chip" data-msg="Procesa sol-006">sol-006 · datos faltantes</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="confirmar" class="confirmar" hidden>
+      <div>
+        <strong>⚠ El agente espera tu confirmación</strong>
+        <span id="confirmar-detalle"></span>
+      </div>
+      <div class="confirmar-botones">
+        <button id="btn-confirmo" class="boton aviso" type="button">Confirmo</button>
+        <button id="btn-cancelo" class="boton secundario" type="button">No, cancelar</button>
+      </div>
+    </div>
+
+    <form id="formulario" class="entrada">
+      <textarea id="mensaje" rows="2" maxlength="2000" placeholder="Escribe, por ejemplo: procesa sol-004" required></textarea>
+      <button id="enviar" class="boton" type="submit">Enviar</button>
+    </form>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
