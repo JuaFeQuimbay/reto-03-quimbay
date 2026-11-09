@@ -24,7 +24,7 @@ const FIN: Record<string, MotivoFin> = {
   refusal: "rechazo",
 }
 
-function aMensajeAnthropic(m: Mensaje): Anthropic.Beta.BetaMessageParam {
+export function aMensajeAnthropic(m: Mensaje): Anthropic.Beta.BetaMessageParam {
   if (m.rol === "usuario") return { role: "user", content: m.texto }
   if (m.rol === "herramientas") {
     return {
