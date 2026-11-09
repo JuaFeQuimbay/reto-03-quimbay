@@ -1,0 +1,19 @@
+# Dependencias y artefactos
+node_modules/
+dist/
+out/
+
+# Secretos
+.env
+.env.*
+!.env.example
+
+# Material personal y documentos originales del reto (no forman parte de la solución)
+/PLAN-RETO-03.md
+*.pdf
+/reto-03/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+*.log
