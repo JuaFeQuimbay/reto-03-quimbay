@@ -79,8 +79,13 @@ src/llm/                        adaptador de proveedor LLM (Anthropic, simulado)
 src/server.ts                   API HTTP y front estático
 web/                            chat en HTML plano
 fixtures/reto-03/               casos y maestros entregados por Periferia (sin modificar)
+modulo/                         agente empaquetado (agent.md, tools/oc.ts, skill/) · ver modulo/README.md
 demo.ts                         verificación sin modelo
 ```
+
+## Módulo reutilizable (bonus)
+
+`modulo/` contiene el agente empaquetado para otras plataformas: `agent.md` (system prompt con frontmatter), `tools/oc.ts` (re-exporta las mismas herramientas, sin servidor) y `skill/ordenes-compra/SKILL.md` (conocimiento). Los Markdown son espejo byte a byte de `agent/prompt.md` y `src/knowledge/ordenes-compra.md`; `bun run modulo:check` falla si divergen y `bun run modulo:sync` los vuelve a alinear. Detalles en [modulo/README.md](modulo/README.md).
 
 ## Scripts
 
@@ -90,3 +95,5 @@ demo.ts                         verificación sin modelo
 | `bun run start` | Servidor en producción |
 | `bun run demo.ts` | Verificación de los 6 casos sin modelo |
 | `bun run typecheck` | `tsc --noEmit` (TypeScript estricto, sin `any`) |
+| `bun run modulo:check` | Verifica que `modulo/` sea idéntico a su fuente |
+| `bun run modulo:sync` | Sincroniza `modulo/` desde la fuente |

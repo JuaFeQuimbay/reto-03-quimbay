@@ -38,6 +38,30 @@ Cada compra de Periferia termina en una analista digitando a mano en SAP una ord
 
 La separación que pide el PRD está en tres lugares distintos: el **comportamiento** vive en `agent/prompt.md` (qué hacer, en qué orden, cuándo preguntar), el **conocimiento** en `src/knowledge/ordenes-compra.md` (qué es cada regla, cómo resolver cada bloqueo, códigos SAP) y la **ejecución** en `src/tools/` sobre `src/domain/`. El servidor no conoce ninguna regla de negocio: cambiar la tolerancia de RC5 toca `src/domain/reglas.ts` y una línea del conocimiento, nada más. `demo.ts` y el agente ejecutan las herramientas por el mismo camino (`ejecutarHerramienta`), así que lo que verifica la demo es lo que corre en producción.
 
+### Decisiones de arquitectura
+
+El principio que ordena todo lo demás: **la IA orquesta y conversa; el código decide.** El modelo de lenguaje nunca determina si una OC cumple los controles ni qué valores lleva; eso lo hacen funciones deterministas que se pueden probar sin modelo. De ahí se desprenden las decisiones concretas (los trade-offs y alternativas descartadas están en la sección 8):
+
+1. **Capas con dependencias en una sola dirección.** `src/domain/` es lógica de negocio pura (reglas, parseo, payload, evidencia) sin HTTP, sin IA y sin conocer herramientas; `src/tools/` envuelve el dominio en el contrato del PRD; `src/agent/` orquesta herramientas y modelo; `src/llm/` y `src/sap/` son adaptadores detrás de interfaces; `src/server.ts` solo expone HTTP. Nada de abajo importa nada de arriba. Por eso `demo.ts` importa `src/tools/` sin arrastrar el servidor, y `modulo/` puede re-exportar las herramientas tal cual.
+
+2. **Las herramientas son la única fuente de verdad y releen la fuente.** Cada herramienta recibe `caso` y vuelve a leer los archivos; el modelo no transporta datos entre herramientas. Si envía `paquete`, `derivados` o `payload` (argumentos opcionales por el contrato del PRD), se comparan con lo calculado desde la fuente y se rechazan si difieren. Esto hace innecesaria la regla CA2 en vez de solo prohibirla en el prompt.
+
+3. **Cada regla de control es una función pura que devuelve una `Evaluacion`** (`ok | bloqueo | confirmacion | derivado | no_aplica`, mensaje, acción sugerida, valores). `oc_validar` solo las agrega. Agregar una RC11 es escribir una función y añadirla a la lista; la misma estructura alimenta el `control.csv`, el front y la respuesta del modelo.
+
+4. **La confirmación humana se hace cumplir en código, en tres capas** (prompt → compuerta del ciclo → revalidación en `oc_crear`), descritas en la sección 3. La seguridad del sistema no depende de que el modelo obedezca.
+
+5. **Dos interfaces de adaptador, `ProveedorLLM` y `SapAdapter`.** El ciclo habla con el modelo mediante un historial neutral (`Mensaje[]`) y las herramientas hablan con SAP mediante la interfaz del PRD. Cambiar de proveedor de IA o pasar del mock a OData es agregar una implementación, no tocar el ciclo ni las herramientas. El proveedor simulado es una implementación más de `ProveedorLLM`, lo que permite probar ciclo y front sin clave ni costo y degradar con gracia si la clave falta.
+
+6. **Comportamiento y conocimiento como archivos Markdown con frontmatter**, no como cadenas en código. La aplicación los carga quitando el frontmatter; `modulo/` los espeja byte a byte y `bun run modulo:check` falla si divergen. Una sola fuente de verdad para la app y para el módulo reutilizable.
+
+7. **Contrato uniforme `{ ok, data } | { ok: false, error }` y "nunca lanzar"** en todo el dominio y las herramientas (`seguro()` convierte cualquier excepción en error tipado). Un caso malo no tumba el siguiente y el modelo siempre recibe algo que puede explicar.
+
+8. **Sin base de datos: archivos en `out/` con escritura serializada.** Una cola (`enSerie`) garantiza que dos sesiones concurrentes no corrompan `control.csv` ni `ordenes.jsonl`, y que buscar-y-crear en el SAP simulado sea atómico (dos llamadas simultáneas no crean dos OC).
+
+9. **Un solo proceso sirve API y front**, con el front en HTML plano. Un despliegue, un comando (`bun run dev`), sin paso de compilación.
+
+10. **Trazabilidad como dato de primera clase.** Cada valor de la OC lleva su fuente (`solicitud`, `cotizacion`, `maestro.<x>`, `derivado`) en `trazabilidad.json`; cada llamada a herramienta queda en `log.jsonl`; cada intento en `control.csv`. Auditar no requiere leer la conversación.
+
 ## 3. Ciclo del agente
 
 El bucle está en `src/agent/ciclo.ts` (`ejecutarTurno`). Por turno:
@@ -164,7 +188,7 @@ Qué cambio propondría, en tres frentes. Primero, una política **"sin OC no ha
 | HU-6 Manejo de errores | Hecho | Observabilidad (métricas, alertas) sobre `log.jsonl` |
 | Front, backend, adaptador LLM, prompt separado | Hecho | Autenticación de usuarios y roles; streaming |
 | `demo.ts` | Hecho | Pruebas unitarias por regla además de la prueba de integración |
-| Bonus `modulo/` | No hecho | — |
+| Bonus `modulo/` | Hecho | `agent.md` y `SKILL.md` espejan byte a byte la fuente (`bun run modulo:check` lo verifica); `tools/oc.ts` re-exporta las herramientas sin el servidor |
 
 ## 11. Uso de IA
 

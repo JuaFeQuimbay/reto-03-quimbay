@@ -1,3 +1,8 @@
+---
+name: ordenes-compra
+description: Conocimiento del proceso de órdenes de compra de Periferia - reglas de control RC1–RC10, cómo resolver cada bloqueo, OC retroactivas y códigos SAP (IVA, condiciones de pago, unidades)
+---
+
 ## El proceso de compra (procure-to-pay)
 
 El orden correcto es: **cotización → solicitud → aprobación del líder → orden de compra (OC) → compra → factura → pago**. La OC es el control que autoriza el gasto *antes* de comprometerlo con el proveedor; contabilidad no paga una factura sin OC.

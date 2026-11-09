@@ -7,7 +7,9 @@
     "dev": "bun --watch src/server.ts",
     "start": "bun src/server.ts",
     "demo": "bun run demo.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "modulo:sync": "bun modulo/sincronizar.ts",
+    "modulo:check": "bun modulo/sincronizar.ts --check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
